@@ -149,7 +149,7 @@ class SlotGameEngine {
 
         repeat(spinTicks) {
             reels.forEachIndexed { index, reel ->
-                if (!reel.isFrozen) {
+                if (!reel.isFrozen && !reel.isExpanded) {
                     reels[index] = reel.copy(currentSymbol = allSymbols.random())
                 }
             }
@@ -157,7 +157,7 @@ class SlotGameEngine {
         }
 
         reels.forEachIndexed { index, reel ->
-            if (!reel.isFrozen) {
+            if (!reel.isFrozen && !reel.isExpanded) {
                 reels[index] = reel.copy(currentSymbol = getRandomSymbolWeighted())
             }
         }

@@ -12,11 +12,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -231,20 +233,31 @@ fun SlotScreen(engine: SlotGameEngine) {
                 }
             }
 
+            val scrollState = rememberScrollState()
+            val reelsCount = engine.reels.size
+            LaunchedEffect(reelsCount) {
+                if (reelsCount > 3) {
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
+            }
+
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 engine.reels.forEach { reel ->
-                    ReelCard(
-                        reel = reel,
-                        isSpinning = engine.isSpinning,
-                        isExpansionShaking = engine.isExpansionShaking,
-                        isTargetable = engine.isSelectingFreezeTarget && !reel.isFrozen,
-                        onReelClick = { engine.promptSymbolSelectionForReel(reel.id) }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    key(reel.id) {
+                        ReelCard(
+                            reel = reel,
+                            isSpinning = engine.isSpinning,
+                            isExpansionShaking = engine.isExpansionShaking,
+                            isTargetable = engine.isSelectingFreezeTarget && !reel.isFrozen,
+                            totalReels = engine.reels.size,
+                            onReelClick = { engine.promptSymbolSelectionForReel(reel.id) }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                 }
             }
         }
@@ -478,20 +491,34 @@ fun ReelCard(
     isSpinning: Boolean,
     isExpansionShaking: Boolean,
     isTargetable: Boolean,
+    totalReels: Int = 3,
     onReelClick: () -> Unit
 ) {
+    val density = LocalDensity.current
+    val shakePx = with(density) { 8.dp.toPx() }
+
     val infiniteTransition = rememberInfiniteTransition(label = "ShakeTransition")
     val shakeOffset by infiniteTransition.animateFloat(
-        initialValue = -5f,
-        targetValue = 5f,
+        initialValue = -shakePx,
+        targetValue = shakePx,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 35, easing = LinearEasing),
+            animation = tween(durationMillis = 45, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "ShakeAnimation"
     )
 
-    val baseTargetScale = if (reel.isExpanded) 1.15f else 1.0f
+    val shakeRotation by infiniteTransition.animateFloat(
+        initialValue = -8f,
+        targetValue = 8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 55, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ShakeRotation"
+    )
+
+    val baseTargetScale = if (reel.isExpanded) 1.1f else 1.0f
     val reelScale by animateFloatAsState(
         targetValue = if (isSpinning && !reel.isFrozen) baseTargetScale * 0.92f else baseTargetScale,
         animationSpec = tween(durationMillis = 75),
@@ -511,14 +538,19 @@ fun ReelCard(
         else -> Color.White
     }
 
+    val cardWidth = if (totalReels > 3) 62.dp else 80.dp
+    val cardHeight = if (totalReels > 3) 92.dp else 110.dp
+    val symbolFontSize = if (totalReels > 3) 28.sp else 36.sp
+
     Box(
         modifier = Modifier
-            .size(80.dp, 110.dp)
+            .size(cardWidth, cardHeight)
             .scale(reelScale)
             .graphicsLayer {
-                if (isExpansionShaking) {
+                if (isExpansionShaking || (reel.isExpanded && isExpansionShaking)) {
                     translationX = shakeOffset
-                    translationY = shakeOffset
+                    translationY = shakeOffset / 2f
+                    rotationZ = shakeRotation
                 }
             }
             .background(backgroundColor, shape = RoundedCornerShape(10.dp))
@@ -531,8 +563,10 @@ fun ReelCard(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = reel.currentSymbol.label, fontSize = 36.sp)
-            if (isTargetable) {
+            Text(text = reel.currentSymbol.label, fontSize = symbolFontSize)
+            if (reel.isExpanded) {
+                Text(text = "EXTRA", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF79C6))
+            } else if (isTargetable) {
                 Text(text = "TAP TO LOCK", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8BE9FD))
             }
         }
