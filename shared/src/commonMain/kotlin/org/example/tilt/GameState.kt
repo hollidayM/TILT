@@ -85,6 +85,8 @@ class SlotGameEngine {
 
     var isExpansionShaking by mutableStateOf(false)
         private set
+    var isBarTakeoverActive by mutableStateOf(false)
+        private set
 
     var isSelectingFreezeTarget by mutableStateOf(false)
         private set
@@ -150,7 +152,8 @@ class SlotGameEngine {
         repeat(spinTicks) {
             reels.forEachIndexed { index, reel ->
                 if (!reel.isFrozen && !reel.isExpanded) {
-                    reels[index] = reel.copy(currentSymbol = allSymbols.random())
+                    val symbol = if (isBarTakeoverActive) SlotSymbol.BAR else allSymbols.random()
+                    reels[index] = reel.copy(currentSymbol = symbol)
                 }
             }
             delay(tickDelay)
@@ -158,7 +161,8 @@ class SlotGameEngine {
 
         reels.forEachIndexed { index, reel ->
             if (!reel.isFrozen && !reel.isExpanded) {
-                reels[index] = reel.copy(currentSymbol = getRandomSymbolWeighted())
+                val symbol = if (isBarTakeoverActive) SlotSymbol.BAR else getRandomSymbolWeighted()
+                reels[index] = reel.copy(currentSymbol = symbol)
             }
         }
 
@@ -167,6 +171,7 @@ class SlotGameEngine {
 
         coinUsedThisSpin = false
         isExpansionShaking = false
+        isBarTakeoverActive = false
         activeMultiplierBonus = 1.0
         isSpinning = false
 
@@ -220,7 +225,10 @@ class SlotGameEngine {
                     name = "${mult}x Multiplier",
                     description = "Boosts current spin payout by ${mult}x",
                     rarity = CoinRarity.COMMON,
-                    action = { engine -> engine.activeMultiplierBonus = mult.toDouble() }
+                    action = { engine ->
+                        engine.activeMultiplierBonus = mult.toDouble()
+                        engine.calculatePayout()
+                    }
                 )
             }
             roll < rareThreshold -> {
@@ -250,6 +258,7 @@ class SlotGameEngine {
                         description = "Guaranteed 3+ BAR match payout",
                         rarity = CoinRarity.RARE,
                         action = { engine ->
+                            engine.isBarTakeoverActive = true
                             engine.isExpansionShaking = true
                             engine.reels.forEachIndexed { idx, reel ->
                                 engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.BAR)
@@ -309,6 +318,8 @@ class SlotGameEngine {
         showWinAnimation = false
         coinUsedThisSpin = false
         isExpansionShaking = false
+        isBarTakeoverActive = false
+        activeMultiplierBonus = 1.0
         cancelFreezeSelection()
         reels.clear()
         reels.addAll(listOf(Reel(id = 1), Reel(id = 2), Reel(id = 3)))
@@ -334,6 +345,8 @@ class SlotGameEngine {
         showWinAnimation = false
         coinUsedThisSpin = false
         isExpansionShaking = false
+        isBarTakeoverActive = false
+        activeMultiplierBonus = 1.0
         inventoryCoins.clear()
         equippedCoin = null
         cancelFreezeSelection()
@@ -353,23 +366,24 @@ class SlotGameEngine {
         var maxHitSymbol: SlotSymbol? = null
 
         for ((symbol, matchingReels) in symbolCounts) {
-            if (matchingReels.size > maxHits) {
-                maxHits = matchingReels.size
+            val count = matchingReels.size
+            if (count > maxHits) {
+                maxHits = count
                 maxHitSymbol = symbol
+            } else if (count == maxHits && maxHitSymbol != null) {
+                if (getSymbolBaseMultiplier(symbol, count) > getSymbolBaseMultiplier(maxHitSymbol, count)) {
+                    maxHitSymbol = symbol
+                }
             }
         }
 
         var hitMultiplier = 0.0
+        if (maxHitSymbol != null && maxHits >= 1) {
+            hitMultiplier = getSymbolBaseMultiplier(maxHitSymbol, maxHits)
+        }
 
-        if (maxHits >= 3) {
-            hitMultiplier = 1.8
-        } else if (maxHits == 2) {
-            hitMultiplier = 1.4
-        } else if (maxHits == 1) {
-            // ONLY BAR, 7, OR CHERRY GET 1.2x SINGLE HITS
-            if (maxHitSymbol == SlotSymbol.BAR || maxHitSymbol == SlotSymbol.SEVEN || maxHitSymbol == SlotSymbol.CHERRY) {
-                hitMultiplier = 1.2
-            }
+        if (activeMultiplierBonus > 1.0 && hitMultiplier == 0.0) {
+            hitMultiplier = 1.0
         }
 
         var totalPayout = currentBet * hitMultiplier * activeMultiplierBonus
@@ -385,6 +399,39 @@ class SlotGameEngine {
             bankroll += payoutInt
         } else {
             showWinAnimation = false
+        }
+    }
+
+    private fun getSymbolBaseMultiplier(symbol: SlotSymbol, hits: Int): Double {
+        return when (symbol) {
+            SlotSymbol.SEVEN -> when {
+                hits >= 5 -> 10.0
+                hits == 4 -> 7.5
+                hits == 3 -> 5.0
+                hits == 2 -> 2.5
+                else -> 1.5
+            }
+            SlotSymbol.BAR -> when {
+                hits >= 5 -> 7.0
+                hits == 4 -> 5.2
+                hits == 3 -> 3.5
+                hits == 2 -> 2.0
+                else -> 1.2
+            }
+            SlotSymbol.LEMON -> when {
+                hits >= 5 -> 5.0
+                hits == 4 -> 3.7
+                hits == 3 -> 2.5
+                hits == 2 -> 1.5
+                else -> 0.0
+            }
+            SlotSymbol.CHERRY -> when {
+                hits >= 5 -> 4.0
+                hits == 4 -> 3.0
+                hits == 3 -> 2.0
+                hits == 2 -> 1.2
+                else -> 1.0
+            }
         }
     }
 }

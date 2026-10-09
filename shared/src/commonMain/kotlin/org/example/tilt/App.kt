@@ -227,6 +227,27 @@ fun SlotScreen(engine: SlotGameEngine) {
 
         // Reels Container
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (engine.activeMultiplierBonus > 1.0 || engine.isBarTakeoverActive) {
+                Surface(
+                    color = Color(0xFFFFB86C),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    val bannerText = when {
+                        engine.isBarTakeoverActive && engine.activeMultiplierBonus > 1.0 -> "🍫 BAR TAKEOVER + ${engine.activeMultiplierBonus.toInt()}x MULTIPLIER ACTIVE!"
+                        engine.isBarTakeoverActive -> "🍫 BAR TAKEOVER ACTIVE!"
+                        else -> "🔥 ${engine.activeMultiplierBonus.toInt()}x MULTIPLIER ACTIVE!"
+                    }
+                    Text(
+                        text = bannerText,
+                        color = Color.Black,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             if (engine.isSelectingFreezeTarget) {
                 Surface(color = Color(0xFF8BE9FD), shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(bottom = 8.dp)) {
                     Text(text = "SELECT A REEL TO LOCK", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
