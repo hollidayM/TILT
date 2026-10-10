@@ -258,21 +258,28 @@ fun SlotScreen(engine: SlotGameEngine) {
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                engine.reels.forEach { reel ->
-                    key(reel.id) {
-                        ReelCard(
-                            reel = reel,
-                            isSpinning = engine.isSpinning,
-                            isExpansionShaking = engine.isExpansionShaking,
-                            isTargetable = engine.isSelectingFreezeTarget && !reel.isFrozen,
-                            totalReels = engine.reels.size,
-                            onReelClick = { engine.promptSymbolSelectionForReel(reel.id) }
-                        )
-                        Spacer(modifier = Modifier.width(if (engine.reels.size > 3) 4.dp else 6.dp))
+                engine.reels.forEachIndexed { index, reel ->
+                    key("${reel.id}_${engine.reels.size}") {
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ReelCard(
+                                reel = reel,
+                                isSpinning = engine.isSpinning,
+                                isExpansionShaking = engine.isExpansionShaking,
+                                isTargetable = engine.isSelectingFreezeTarget && !reel.isFrozen,
+                                totalReels = engine.reels.size,
+                                onReelClick = { engine.promptSymbolSelectionForReel(reel.id) }
+                            )
+                        }
+                        if (index < engine.reels.size - 1) {
+                            Spacer(modifier = Modifier.width(if (engine.reels.size > 3) 3.dp else 6.dp))
+                        }
                     }
                 }
             }
@@ -554,25 +561,21 @@ fun ReelCard(
         else -> Color.White
     }
 
-    val cardWidth = when {
-        totalReels > 5 -> 42.dp
-        totalReels > 3 -> 54.dp
-        else -> 80.dp
-    }
     val cardHeight = when {
-        totalReels > 5 -> 70.dp
-        totalReels > 3 -> 86.dp
+        totalReels > 5 -> 72.dp
+        totalReels > 3 -> 88.dp
         else -> 110.dp
     }
     val symbolFontSize = when {
         totalReels > 5 -> 18.sp
-        totalReels > 3 -> 24.sp
-        else -> 36.sp
+        totalReels > 3 -> 22.sp
+        else -> 34.sp
     }
 
     Box(
         modifier = Modifier
-            .size(cardWidth, cardHeight)
+            .fillMaxWidth()
+            .height(cardHeight)
             .scale(reelScale)
             .graphicsLayer {
                 if (isExpansionShaking || (reel.isExpanded && isExpansionShaking)) {
@@ -581,11 +584,11 @@ fun ReelCard(
                     rotationZ = shakeRotation
                 }
             }
-            .background(backgroundColor, shape = RoundedCornerShape(10.dp))
+            .background(backgroundColor, shape = RoundedCornerShape(8.dp))
             .border(
-                width = if (reel.isExpanded || reel.isFrozen || isTargetable) 4.dp else 3.dp,
+                width = if (reel.isExpanded || reel.isFrozen || isTargetable) 3.5.dp else 2.5.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(8.dp)
             )
             .clickable(enabled = isTargetable) { onReelClick() },
         contentAlignment = Alignment.Center
