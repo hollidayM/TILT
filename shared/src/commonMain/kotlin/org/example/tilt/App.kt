@@ -226,7 +226,10 @@ fun SlotScreen(engine: SlotGameEngine) {
         }
 
         // Reels Container
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             if (engine.activeMultiplierBonus > 1.0 || engine.isBarTakeoverActive) {
                 Surface(
                     color = Color(0xFFFFB86C),
@@ -254,16 +257,8 @@ fun SlotScreen(engine: SlotGameEngine) {
                 }
             }
 
-            val scrollState = rememberScrollState()
-            val reelsCount = engine.reels.size
-            LaunchedEffect(reelsCount) {
-                if (reelsCount > 3) {
-                    scrollState.animateScrollTo(scrollState.maxValue)
-                }
-            }
-
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -277,7 +272,7 @@ fun SlotScreen(engine: SlotGameEngine) {
                             totalReels = engine.reels.size,
                             onReelClick = { engine.promptSymbolSelectionForReel(reel.id) }
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(if (engine.reels.size > 3) 4.dp else 6.dp))
                     }
                 }
             }
@@ -559,9 +554,9 @@ fun ReelCard(
         else -> Color.White
     }
 
-    val cardWidth = if (totalReels > 3) 62.dp else 80.dp
-    val cardHeight = if (totalReels > 3) 92.dp else 110.dp
-    val symbolFontSize = if (totalReels > 3) 28.sp else 36.sp
+    val cardWidth = if (totalReels > 3) 54.dp else 80.dp
+    val cardHeight = if (totalReels > 3) 86.dp else 110.dp
+    val symbolFontSize = if (totalReels > 3) 24.sp else 36.sp
 
     Box(
         modifier = Modifier
