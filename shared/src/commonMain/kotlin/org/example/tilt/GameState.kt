@@ -240,8 +240,16 @@ class SlotGameEngine {
                     rarity = CoinRarity.UNCOMMON,
                     action = { engine ->
                         engine.isExpansionShaking = true
-                        engine.reels.add(Reel(id = engine.reels.size + 1, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
-                        engine.reels.add(Reel(id = engine.reels.size + 2, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
+                        if (engine.reels.size == 3) {
+                            engine.reels.add(Reel(id = 4, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
+                            engine.reels.add(Reel(id = 5, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
+                        } else {
+                            engine.reels.forEachIndexed { idx, reel ->
+                                if (reel.isExpanded) {
+                                    engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.SEVEN)
+                                }
+                            }
+                        }
                         engine.calculatePayout()
                     }
                 )
@@ -262,8 +270,10 @@ class SlotGameEngine {
                         action = { engine ->
                             engine.isBarTakeoverActive = true
                             engine.isExpansionShaking = true
-                            engine.reels.add(Reel(id = engine.reels.size + 1, currentSymbol = SlotSymbol.BAR, isExpanded = true))
-                            engine.reels.add(Reel(id = engine.reels.size + 2, currentSymbol = SlotSymbol.BAR, isExpanded = true))
+                            if (engine.reels.size == 3) {
+                                engine.reels.add(Reel(id = 4, currentSymbol = SlotSymbol.BAR, isExpanded = true))
+                                engine.reels.add(Reel(id = 5, currentSymbol = SlotSymbol.BAR, isExpanded = true))
+                            }
                             engine.reels.forEachIndexed { idx, reel ->
                                 engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.BAR)
                             }
