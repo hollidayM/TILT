@@ -4,13 +4,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 enum class SlotSymbol(val label: String, val weight: Int) {
     CHERRY("🍒", 40),
     LEMON("🍋", 30),
-    BAR("🍫", 20), // Updated to Classic Slot Bar look
+    BAR("🍫", 20),
     SEVEN("7️⃣", 10)
 }
 
@@ -28,6 +29,8 @@ data class CoinItem(
     val name: String,
     val description: String,
     val rarity: CoinRarity,
+    val cardColorHex: Long, // Color tint for individual cards
+    val price: Int = 20,
     val action: (engine: SlotGameEngine) -> Unit
 )
 
@@ -35,6 +38,7 @@ enum class GamePhase {
     MAIN_MENU,
     SETTINGS,
     PLAYING,
+    ROUND_SUCCESS,
     SHOP,
     GAME_OVER
 }
@@ -59,8 +63,15 @@ class SlotGameEngine {
     var currentBet by mutableStateOf(5)
         private set
 
-    // Win Animation State
+    var roundStartBankroll by mutableStateOf(100)
+        private set
+    var roundSpinsUsed by mutableStateOf(0)
+        private set
+
+    // Win Feedback & Breakdown State
     var lastWinAmount by mutableStateOf(0)
+        private set
+    var winReasonText by mutableStateOf("")
         private set
     var showWinAnimation by mutableStateOf(false)
         private set
@@ -77,6 +88,9 @@ class SlotGameEngine {
     val inventoryCoins = mutableStateListOf<CoinItem>()
     var equippedCoin by mutableStateOf<CoinItem?>(null)
         private set
+
+    // Shop Randomized Inventory Stock
+    val shopCoinStock = mutableStateListOf<CoinItem>()
 
     var isSpinning by mutableStateOf(false)
         private set
@@ -143,6 +157,7 @@ class SlotGameEngine {
         cancelFreezeSelection()
         bankroll -= currentBet
         remainingSpins -= 1
+        roundSpinsUsed += 1
         isSpinning = true
 
         val spinTicks = if (fastSpinMode) 6 else 14
@@ -169,15 +184,25 @@ class SlotGameEngine {
         }
 
         calculatePayout()
-        unfreezeAllReels()
 
+        // Pause to show win breakdown banner before resolving
+        if (showWinAnimation) {
+            delay(900)
+        }
+
+        resetTurnState()
+        isSpinning = false
+
+        checkRoundEndConditions()
+    }
+
+    private fun resetTurnState() {
+        unfreezeAllReels()
+        removeExpandedReels()
         coinUsedThisSpin = false
         isExpansionShaking = false
         isBarTakeoverActive = false
         activeMultiplierBonus = 1.0
-        isSpinning = false
-
-        checkRoundEndConditions()
     }
 
     fun useEquippedCoin() {
@@ -190,6 +215,26 @@ class SlotGameEngine {
 
         inventoryCoins.remove(coin)
         equippedCoin = inventoryCoins.firstOrNull()
+    }
+
+    // --- SHOP ACTIONS ---
+    fun refreshShopStock() {
+        shopCoinStock.clear()
+        val numItems = Random.nextInt(2, 4)
+        repeat(numItems) {
+            shopCoinStock.add(generateRandomCoin())
+        }
+    }
+
+    fun buyIndividualCoin(coin: CoinItem) {
+        if (bankroll >= coin.price) {
+            bankroll -= coin.price
+            inventoryCoins.add(coin)
+            if (equippedCoin == null) {
+                equippedCoin = coin
+            }
+            shopCoinStock.remove(coin)
+        }
     }
 
     suspend fun buyAndOpenCoinPack() {
@@ -216,9 +261,17 @@ class SlotGameEngine {
         isOpeningPack = false
     }
 
-    fun addExpandedReel(symbol: SlotSymbol) {
-        val nextId = (reels.maxOfOrNull { it.id } ?: 0) + 1
-        reels.add(Reel(id = nextId, currentSymbol = symbol, isExpanded = true))
+    fun expandFlankingReels(symbol: SlotSymbol) {
+        val maxId = (reels.maxOfOrNull { it.id } ?: 0)
+        val leftReel = Reel(id = maxId + 1, currentSymbol = symbol, isExpanded = true)
+        val rightReel = Reel(id = maxId + 2, currentSymbol = symbol, isExpanded = true)
+
+        reels.add(0, leftReel)
+        reels.add(rightReel)
+    }
+
+    private fun removeExpandedReels() {
+        reels.removeAll { it.isExpanded }
     }
 
     private fun generateRandomCoin(): CoinItem {
@@ -228,10 +281,17 @@ class SlotGameEngine {
         return when {
             roll < 55 -> {
                 val mult = listOf(2, 4, 6).random()
+                val colorHex = when (mult) {
+                    2 -> 0xFFFF5555 // Red
+                    4 -> 0xFFFFB86C // Orange
+                    else -> 0xFFFF79C6 // Pink
+                }
                 CoinItem(
                     name = "${mult}x Multiplier",
                     description = "Boosts current spin payout by ${mult}x",
                     rarity = CoinRarity.COMMON,
+                    cardColorHex = colorHex,
+                    price = 15 + (mult * 2),
                     action = { engine ->
                         engine.activeMultiplierBonus = mult.toDouble()
                         engine.calculatePayout()
@@ -241,12 +301,13 @@ class SlotGameEngine {
             roll < rareThreshold -> {
                 CoinItem(
                     name = "Wild Expansion",
-                    description = "+2 Extra reels forced to 7s",
+                    description = "+2 Flanking extra reels forced to 7s",
                     rarity = CoinRarity.UNCOMMON,
+                    cardColorHex = 0xFFFFD700, // Gold
+                    price = 30,
                     action = { engine ->
                         engine.isExpansionShaking = true
-                        engine.addExpandedReel(SlotSymbol.SEVEN)
-                        engine.addExpandedReel(SlotSymbol.SEVEN)
+                        engine.expandFlankingReels(SlotSymbol.SEVEN)
                         engine.calculatePayout()
                     }
                 )
@@ -257,18 +318,21 @@ class SlotGameEngine {
                         name = "Target Freeze",
                         description = "Lock reel & pick symbol",
                         rarity = CoinRarity.RARE,
+                        cardColorHex = 0xFF8BE9FD, // Cyan / Light Blue
+                        price = 25,
                         action = { engine -> engine.isSelectingFreezeTarget = true }
                     )
                 } else {
                     CoinItem(
                         name = "BAR Takeover",
-                        description = "+2 Extra reels & full BAR takeover",
+                        description = "+2 Flanking reels & full BAR takeover",
                         rarity = CoinRarity.RARE,
+                        cardColorHex = 0xFFBD93F9, // Purple
+                        price = 35,
                         action = { engine ->
                             engine.isBarTakeoverActive = true
                             engine.isExpansionShaking = true
-                            engine.addExpandedReel(SlotSymbol.BAR)
-                            engine.addExpandedReel(SlotSymbol.BAR)
+                            engine.expandFlankingReels(SlotSymbol.BAR)
                             engine.reels.forEachIndexed { idx, reel ->
                                 engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.BAR)
                             }
@@ -308,7 +372,7 @@ class SlotGameEngine {
 
     private fun checkRoundEndConditions() {
         if (bankroll >= targetBankroll) {
-            currentPhase = GamePhase.SHOP
+            currentPhase = GamePhase.ROUND_SUCCESS
             return
         }
 
@@ -317,15 +381,26 @@ class SlotGameEngine {
         }
     }
 
+    fun proceedToShop() {
+        refreshShopStock()
+        currentPhase = GamePhase.SHOP
+    }
+
     fun startNextRound() {
         roundNumber += 1
         val aggressiveBonus = if (totalHighRollerBets > 3) 20 else 0
         val growthFactor = if (roundNumber <= 5) 30 else 70 + (roundNumber * 15) + aggressiveBonus
 
         targetBankroll += growthFactor
-        remainingSpins = if (roundNumber <= 5) 12 else 10
+
+        val baseSpins = if (roundNumber <= 5) 12 else 10
+        remainingSpins += baseSpins
+
+        roundStartBankroll = bankroll
+        roundSpinsUsed = 0
 
         showWinAnimation = false
+        winReasonText = ""
         coinUsedThisSpin = false
         isExpansionShaking = false
         isBarTakeoverActive = false
@@ -348,11 +423,14 @@ class SlotGameEngine {
         roundNumber = 1
         targetBankroll = 60
         bankroll = 100
+        roundStartBankroll = 100
+        roundSpinsUsed = 0
         remainingSpins = 12
         currentBet = 5
         totalHighRollerBets = 0
         totalCoinsUsed = 0
         showWinAnimation = false
+        winReasonText = ""
         coinUsedThisSpin = false
         isExpansionShaking = false
         isBarTakeoverActive = false
@@ -405,10 +483,23 @@ class SlotGameEngine {
         val payoutInt = totalPayout.toInt()
         if (payoutInt > 0) {
             lastWinAmount = payoutInt
+
+            // Generate detailed breakdown message explaining the hit
+            val hitType = when (maxHits) {
+                1 -> "SINGLE HITTED ${maxHitSymbol?.label}"
+                2 -> "PAIR OF ${maxHitSymbol?.label}'s"
+                3 -> "3x MATCH ON ${maxHitSymbol?.label}!"
+                4 -> "4x MATCH ON ${maxHitSymbol?.label}!!"
+                else -> "5x JACKPOT MATCH ON ${maxHitSymbol?.label}!!!"
+            }
+
+            val multText = if (activeMultiplierBonus > 1.0) " (${activeMultiplierBonus.toInt()}x COIN BOOST)" else ""
+            winReasonText = "$hitType$multText"
             showWinAnimation = true
             bankroll += payoutInt
         } else {
             showWinAnimation = false
+            winReasonText = ""
         }
     }
 
