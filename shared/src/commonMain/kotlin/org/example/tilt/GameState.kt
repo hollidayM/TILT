@@ -150,19 +150,21 @@ class SlotGameEngine {
         val allSymbols = SlotSymbol.values()
 
         repeat(spinTicks) {
-            reels.forEachIndexed { index, reel ->
-                if (!reel.isFrozen && !reel.isExpanded) {
+            reels.forEachIndexed { index, _ ->
+                val current = reels[index]
+                if (!current.isFrozen && !current.isExpanded) {
                     val symbol = if (isBarTakeoverActive) SlotSymbol.BAR else allSymbols.random()
-                    reels[index] = reel.copy(currentSymbol = symbol)
+                    reels[index] = current.copy(currentSymbol = symbol)
                 }
             }
             delay(tickDelay)
         }
 
-        reels.forEachIndexed { index, reel ->
-            if (!reel.isFrozen && !reel.isExpanded) {
+        reels.forEachIndexed { index, _ ->
+            val current = reels[index]
+            if (!current.isFrozen && !current.isExpanded) {
                 val symbol = if (isBarTakeoverActive) SlotSymbol.BAR else getRandomSymbolWeighted()
-                reels[index] = reel.copy(currentSymbol = symbol)
+                reels[index] = current.copy(currentSymbol = symbol)
             }
         }
 
@@ -255,11 +257,13 @@ class SlotGameEngine {
                 } else {
                     CoinItem(
                         name = "BAR Takeover",
-                        description = "Guaranteed 3+ BAR match payout",
+                        description = "+2 Extra reels & full BAR takeover",
                         rarity = CoinRarity.RARE,
                         action = { engine ->
                             engine.isBarTakeoverActive = true
                             engine.isExpansionShaking = true
+                            engine.reels.add(Reel(id = engine.reels.size + 1, currentSymbol = SlotSymbol.BAR, isExpanded = true))
+                            engine.reels.add(Reel(id = engine.reels.size + 2, currentSymbol = SlotSymbol.BAR, isExpanded = true))
                             engine.reels.forEachIndexed { idx, reel ->
                                 engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.BAR)
                             }
@@ -287,6 +291,7 @@ class SlotGameEngine {
                 currentSymbol = chosenSymbol,
                 isFrozen = true
             )
+            calculatePayout()
         }
         selectedReelForSymbolPicker = null
     }
