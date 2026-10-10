@@ -216,6 +216,11 @@ class SlotGameEngine {
         isOpeningPack = false
     }
 
+    fun addExpandedReel(symbol: SlotSymbol) {
+        val nextId = (reels.maxOfOrNull { it.id } ?: 0) + 1
+        reels.add(Reel(id = nextId, currentSymbol = symbol, isExpanded = true))
+    }
+
     private fun generateRandomCoin(): CoinItem {
         val roll = Random.nextInt(100)
         val rareThreshold = if (totalCoinsUsed > 8) 70 else 85
@@ -240,16 +245,8 @@ class SlotGameEngine {
                     rarity = CoinRarity.UNCOMMON,
                     action = { engine ->
                         engine.isExpansionShaking = true
-                        if (engine.reels.size == 3) {
-                            engine.reels.add(Reel(id = 4, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
-                            engine.reels.add(Reel(id = 5, currentSymbol = SlotSymbol.SEVEN, isExpanded = true))
-                        } else {
-                            engine.reels.forEachIndexed { idx, reel ->
-                                if (reel.isExpanded) {
-                                    engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.SEVEN)
-                                }
-                            }
-                        }
+                        engine.addExpandedReel(SlotSymbol.SEVEN)
+                        engine.addExpandedReel(SlotSymbol.SEVEN)
                         engine.calculatePayout()
                     }
                 )
@@ -270,10 +267,8 @@ class SlotGameEngine {
                         action = { engine ->
                             engine.isBarTakeoverActive = true
                             engine.isExpansionShaking = true
-                            if (engine.reels.size == 3) {
-                                engine.reels.add(Reel(id = 4, currentSymbol = SlotSymbol.BAR, isExpanded = true))
-                                engine.reels.add(Reel(id = 5, currentSymbol = SlotSymbol.BAR, isExpanded = true))
-                            }
+                            engine.addExpandedReel(SlotSymbol.BAR)
+                            engine.addExpandedReel(SlotSymbol.BAR)
                             engine.reels.forEachIndexed { idx, reel ->
                                 engine.reels[idx] = reel.copy(currentSymbol = SlotSymbol.BAR)
                             }
