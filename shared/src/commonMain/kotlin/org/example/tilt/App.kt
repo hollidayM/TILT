@@ -554,7 +554,7 @@ fun ReelCard(
     }
 
     val backgroundColor = when {
-        reel.isFrozen -> Color(0xFF8BE9FD)
+        reel.isFrozen -> Color(0xFFE0F7FA)
         isTargetable -> Color(0xFF44475A)
         else -> Color.White
     }
@@ -576,7 +576,7 @@ fun ReelCard(
             }
             .background(backgroundColor, shape = RoundedCornerShape(10.dp))
             .border(
-                width = if (reel.isExpanded || isTargetable) 4.dp else 3.dp,
+                width = if (reel.isExpanded || reel.isFrozen || isTargetable) 4.dp else 3.dp,
                 color = borderColor,
                 shape = RoundedCornerShape(10.dp)
             )
@@ -585,7 +585,9 @@ fun ReelCard(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = reel.currentSymbol.label, fontSize = symbolFontSize)
-            if (reel.isExpanded) {
+            if (reel.isFrozen) {
+                Text(text = "LOCKED ❄️", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B0FF))
+            } else if (reel.isExpanded) {
                 Text(text = "EXTRA", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF79C6))
             } else if (isTargetable) {
                 Text(text = "TAP TO LOCK", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8BE9FD))
