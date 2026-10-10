@@ -554,9 +554,21 @@ fun ReelCard(
         else -> Color.White
     }
 
-    val cardWidth = if (totalReels > 3) 54.dp else 80.dp
-    val cardHeight = if (totalReels > 3) 86.dp else 110.dp
-    val symbolFontSize = if (totalReels > 3) 24.sp else 36.sp
+    val cardWidth = when {
+        totalReels > 5 -> 42.dp
+        totalReels > 3 -> 54.dp
+        else -> 80.dp
+    }
+    val cardHeight = when {
+        totalReels > 5 -> 70.dp
+        totalReels > 3 -> 86.dp
+        else -> 110.dp
+    }
+    val symbolFontSize = when {
+        totalReels > 5 -> 18.sp
+        totalReels > 3 -> 24.sp
+        else -> 36.sp
+    }
 
     Box(
         modifier = Modifier
