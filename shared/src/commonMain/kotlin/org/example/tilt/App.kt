@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,46 +49,193 @@ fun App() {
 
 @Composable
 fun MainMenuScreen(engine: SlotGameEngine) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .background(Color(0xFFFF0000))
+            .padding(32.dp)
     ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "🎰 TILT 🎰", color = Color(0xFFBD93F9), fontSize = 42.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Rogue-like Tactical Slots", color = Color(0xFFF1FA8C), fontSize = 16.sp)
-        }
-
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = { engine.startNewRun() },
-                modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF50FA7B))
-            ) {
-                Text(text = "PLAY RUN", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AnimatedLetter(
+                        letter = "T",
+                        initialRotation = -6f,
+                        targetRotation = 6f,
+                        initialOffsetY = -8f,
+                        targetOffsetY = 8f,
+                        durationMs = 1200
+                    )
+
+                    AnimatedLetter(
+                        letter = "I",
+                        initialRotation = -24f,
+                        targetRotation = -14f,
+                        initialOffsetY = 6f,
+                        targetOffsetY = -6f,
+                        durationMs = 900
+                    )
+
+                    AnimatedLetter(
+                        letter = "L",
+                        initialRotation = -4f,
+                        targetRotation = 8f,
+                        initialOffsetY = -10f,
+                        targetOffsetY = 4f,
+                        durationMs = 1100
+                    )
+
+                    AnimatedLetter(
+                        letter = "T",
+                        initialRotation = 8f,
+                        targetRotation = -6f,
+                        initialOffsetY = 6f,
+                        targetOffsetY = -8f,
+                        durationMs = 1300
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Rogue-like Tactical Slots",
+                    color = Color.Black,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
 
-            Button(
-                onClick = { engine.navigateTo(GamePhase.SETTINGS) },
-                modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF44475A))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(text = "SETTINGS", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Button(
+                    onClick = { engine.startNewRun() },
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(58.dp),
+                    shape = RoundedCornerShape(29.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Text(
+                        text = "PLAY RUN",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                }
+
+                Button(
+                    onClick = { engine.navigateTo(GamePhase.SETTINGS) },
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(58.dp),
+                    shape = RoundedCornerShape(29.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF282A36))
+                ) {
+                    Text(
+                        text = "SETTINGS",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
+
+            Text(
+                text = "v1.0.0",
+                color = Color.Black.copy(alpha = 0.6f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
+    }
+}
 
-        Text(text = "v1.0.0", color = Color.Gray, fontSize = 12.sp)
+@Composable
+fun AnimatedLetter(
+    letter: String,
+    initialRotation: Float,
+    targetRotation: Float,
+    initialOffsetY: Float,
+    targetOffsetY: Float,
+    durationMs: Int
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "LetterAnim_$letter")
+
+    val offsetY by infiniteTransition.animateFloat(
+        initialValue = initialOffsetY,
+        targetValue = targetOffsetY,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMs, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "OffsetY"
+    )
+
+    val rotationZ by infiniteTransition.animateFloat(
+        initialValue = initialRotation,
+        targetValue = targetRotation,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = (durationMs * 1.2).toInt(), easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "RotationZ"
+    )
+
+    Box(
+        modifier = Modifier.graphicsLayer {
+            translationY = offsetY
+            this.rotationZ = rotationZ
+        }
+    ) {
+        Text(
+            text = letter,
+            color = Color.Black,
+            fontSize = 76.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = FontFamily.SansSerif
+        )
+    }
+}
+
+// --- CLASSIC RETRO SLOT MACHINE BAR BADGE ---
+@Composable
+fun BarSymbolBadge(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier
+            .padding(2.dp)
+            .border(2.5.dp, Color(0xFF3B0014), RoundedCornerShape(12.dp))
+            .padding(2.dp),
+        color = Color(0xFFE63956),
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(Color(0xFFFF6B81))
+                .border(1.5.dp, Color(0xFF3B0014), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "BAR",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.SansSerif,
+                letterSpacing = 1.sp
+            )
+        }
     }
 }
 
@@ -142,7 +290,11 @@ fun SlotScreen(engine: SlotGameEngine) {
                             modifier = Modifier.size(54.dp).clickable { engine.applyFreezeWithSymbol(symbol) }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(text = symbol.label, fontSize = 28.sp)
+                                if (symbol == SlotSymbol.BAR) {
+                                    BarSymbolBadge(modifier = Modifier.size(44.dp, 28.dp))
+                                } else {
+                                    Text(text = symbol.label, fontSize = 28.sp)
+                                }
                             }
                         }
                     }
@@ -195,7 +347,7 @@ fun SlotScreen(engine: SlotGameEngine) {
             Spacer(modifier = Modifier.width(40.dp))
         }
 
-        // Bankroll Display & Detailed Win Reason Banner
+        // Bankroll Display & Permanent Win Breakdown Banner
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Bankroll: $${engine.bankroll}",
@@ -204,16 +356,14 @@ fun SlotScreen(engine: SlotGameEngine) {
                 fontWeight = FontWeight.Bold
             )
 
-            AnimatedVisibility(
-                visible = engine.showWinAnimation,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (engine.showWinAnimation) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
                     Surface(
                         color = Color(0xFF50FA7B),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.padding(top = 4.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             text = "🎉 WIN +$${engine.lastWinAmount}! 🎉",
@@ -230,11 +380,27 @@ fun SlotScreen(engine: SlotGameEngine) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 2.dp)
                     )
+
+                    if (engine.isAwaitingUserAck) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Button(
+                            onClick = { engine.acknowledgeWinAndContinue() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF50FA7B)),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (engine.bankroll >= engine.targetBankroll) "GO TO ROUND SUMMARY ➔" else "CONTINUE ➔",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // Reels Display Container
+        // Reels Container
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -246,8 +412,8 @@ fun SlotScreen(engine: SlotGameEngine) {
                     modifier = Modifier.padding(bottom = 6.dp)
                 ) {
                     val bannerText = when {
-                        engine.isBarTakeoverActive && engine.activeMultiplierBonus > 1.0 -> "🍫 BAR TAKEOVER + ${engine.activeMultiplierBonus.toInt()}x MULTIPLIER ACTIVE!"
-                        engine.isBarTakeoverActive -> "🍫 BAR TAKEOVER ACTIVE!"
+                        engine.isBarTakeoverActive && engine.activeMultiplierBonus > 1.0 -> "BAR TAKEOVER + ${engine.activeMultiplierBonus.toInt()}x MULTIPLIER ACTIVE!"
+                        engine.isBarTakeoverActive -> "BAR TAKEOVER ACTIVE!"
                         else -> "🔥 ${engine.activeMultiplierBonus.toInt()}x MULTIPLIER ACTIVE!"
                     }
                     Text(
@@ -294,7 +460,7 @@ fun SlotScreen(engine: SlotGameEngine) {
             }
         }
 
-        // Single-Use Per-Spin Color-Coded Coin Tray
+        // Single-Use Per-Spin Coin Tray
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = if (engine.coinUsedThisSpin) "COIN CONSUMED FOR THIS SPIN" else "SELECT & USE COIN FOR THIS SPIN",
@@ -307,7 +473,7 @@ fun SlotScreen(engine: SlotGameEngine) {
             if (activeCoin != null) {
                 Button(
                     onClick = { engine.useEquippedCoin() },
-                    enabled = !engine.coinUsedThisSpin && !engine.isSpinning,
+                    enabled = !engine.coinUsedThisSpin && !engine.isSpinning && !engine.isAwaitingUserAck,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (engine.coinUsedThisSpin) Color.DarkGray else Color(activeCoin.cardColorHex)
                     )
@@ -328,7 +494,7 @@ fun SlotScreen(engine: SlotGameEngine) {
                         Surface(
                             color = if (isEquipped) Color(0xFF50FA7B) else Color(coin.cardColorHex),
                             shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.clickable { engine.equipCoin(coin) }
+                            modifier = Modifier.clickable(!engine.isAwaitingUserAck) { engine.equipCoin(coin) }
                         ) {
                             Text(
                                 text = coin.name,
@@ -355,7 +521,7 @@ fun SlotScreen(engine: SlotGameEngine) {
 
             Button(
                 onClick = { coroutineScope.launch { engine.spin() } },
-                enabled = !engine.isSpinning && engine.remainingSpins > 0 && engine.bankroll >= engine.currentBet && !engine.isSelectingFreezeTarget && engine.selectedReelForSymbolPicker == null,
+                enabled = !engine.isSpinning && engine.remainingSpins > 0 && engine.bankroll >= engine.currentBet && !engine.isSelectingFreezeTarget && engine.selectedReelForSymbolPicker == null && !engine.isAwaitingUserAck,
                 modifier = Modifier.fillMaxWidth(0.8f).height(54.dp),
                 shape = RoundedCornerShape(27.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBD93F9))
@@ -466,7 +632,7 @@ fun BetButton(amount: Int, label: String, engine: SlotGameEngine) {
 
     Button(
         onClick = { engine.setBet(amount) },
-        enabled = !engine.isSpinning && !engine.isSelectingFreezeTarget,
+        enabled = !engine.isSpinning && !engine.isSelectingFreezeTarget && !engine.isAwaitingUserAck,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) Color(0xFF50FA7B) else Color(0xFF44475A),
             contentColor = if (isSelected) Color.Black else Color.White
@@ -477,7 +643,6 @@ fun BetButton(amount: Int, label: String, engine: SlotGameEngine) {
     }
 }
 
-// --- ITEMIZED DECKBUILDER SHOP ---
 @Composable
 fun ShopScreen(engine: SlotGameEngine) {
     val coroutineScope = rememberCoroutineScope()
@@ -510,7 +675,6 @@ fun ShopScreen(engine: SlotGameEngine) {
             Text(text = "Bankroll: $${engine.bankroll}", color = Color(0xFF50FA7B), fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
 
-        // Itemized Individual Color-Coded Coin Stock
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -552,7 +716,6 @@ fun ShopScreen(engine: SlotGameEngine) {
             }
         }
 
-        // Coin Roll Pack & Extras Section
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
@@ -720,7 +883,12 @@ fun ReelCard(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = reel.currentSymbol.label, fontSize = symbolFontSize)
+            if (reel.currentSymbol == SlotSymbol.BAR) {
+                BarSymbolBadge()
+            } else {
+                Text(text = reel.currentSymbol.label, fontSize = symbolFontSize)
+            }
+
             if (reel.isFrozen) {
                 Text(text = "LOCKED ❄️", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B0FF))
             } else if (reel.isExpanded) {
